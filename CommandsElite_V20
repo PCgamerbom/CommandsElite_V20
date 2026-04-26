@@ -1,0 +1,306 @@
+local Player = game.Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+local TeleportService = game:GetService("TeleportService")
+
+local ParentFolder
+pcall(function() ParentFolder = game:GetService("CoreGui") end)
+ParentFolder = ParentFolder or Player:WaitForChild("PlayerGui")
+
+if ParentFolder:FindFirstChild("HD_Elite_V20") then ParentFolder.HD_Elite_V20:Destroy() end
+
+local Theme = {
+    Main = Color3.fromRGB(15, 15, 15),
+    Accent = Color3.fromRGB(0, 160, 255),
+    Secondary = Color3.fromRGB(25, 25, 25),
+    Text = Color3.fromRGB(255, 255, 255),
+    Green = Color3.fromRGB(0, 255, 120),
+    Red = Color3.fromRGB(255, 60, 60),
+    SwitchBg = Color3.fromRGB(10, 10, 10)
+}
+
+-- // BACKUPS // --
+local Memory = { Materials = {}, Decals = {}, Fog = Lighting.FogEnd, Bright = Lighting.Brightness, Time = Lighting.ClockTime, Atm = {} }
+
+-- // GUI PRINCIPAL // --
+local ScreenGui = Instance.new("ScreenGui", ParentFolder)
+ScreenGui.Name = "HD_Elite_V20"
+ScreenGui.IgnoreGuiInset = true
+
+local Main = Instance.new("Frame", ScreenGui)
+Main.Size = UDim2.new(0, 800, 0, 540)
+Main.Position = UDim2.new(0.5, -400, 0.4, -270)
+Main.BackgroundColor3 = Theme.Main
+Main.BorderSizePixel = 0
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 12)
+Main.Active = true
+Main.Draggable = true
+
+local Line = Instance.new("Frame", Main)
+Line.Size = UDim2.new(1, 0, 0, 4)
+Line.BackgroundColor3 = Theme.Accent
+Instance.new("UICorner", Line)
+
+-- // NAVEGAÇÃO // --
+local Pages = {}
+local function CreateTab(name, id, pos)
+    local b = Instance.new("TextButton", Main)
+    b.Size = UDim2.new(0.2, 0, 0, 45)
+    b.Position = UDim2.new(0.02 + (pos * 0.21), 0, 0.04, 0)
+    b.BackgroundColor3 = Theme.Secondary
+    b.Text = name
+    b.TextColor3 = Theme.Text
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 13
+    Instance.new("UICorner", b)
+    
+    local p = Instance.new("ScrollingFrame", Main)
+    p.Size = UDim2.new(0.65, -30, 1, -210)
+    p.Position = UDim2.new(0, 20, 0, 95)
+    p.BackgroundTransparency = 1
+    p.Visible = (id == 1)
+    p.ScrollBarThickness = 3
+    Instance.new("UIListLayout", p).Padding = UDim.new(0, 8)
+    Pages[id] = p
+    
+    b.MouseButton1Click:Connect(function()
+        for _, pg in pairs(Pages) do pg.Visible = false end
+        p.Visible = true
+    end)
+end
+
+CreateTab("COMANDOS", 1, 0)
+CreateTab("MUNDO & FPS", 2, 1)
+CreateTab("SERVIDOR", 3, 2)
+
+-- // INPUTS DE BASE // --
+local function CreateBaseInput(name, pos, callback)
+    local box = Instance.new("TextBox", Main)
+    box.Size = UDim2.new(0.2, 0, 0, 45)
+    box.Position = UDim2.new(0.02 + (pos * 0.21), 0, 0.88, 0)
+    box.BackgroundColor3 = Theme.Secondary
+    box.PlaceholderText = name
+    box.Text = ""
+    box.TextColor3 = Theme.Accent
+    box.Font = Enum.Font.GothamBold
+    Instance.new("UICorner", box)
+    box.FocusLost:Connect(function() callback(tonumber(box.Text)) end)
+end
+
+CreateBaseInput("SPEED", 0, function(v) if v and Player.Character then Player.Character.Humanoid.WalkSpeed = v end end)
+CreateBaseInput("JUMP", 1, function(v) if v and Player.Character then Player.Character.Humanoid.JumpPower = v end end)
+CreateBaseInput("FOV", 2, function(v) if v then workspace.CurrentCamera.FieldOfView = v end end)
+
+-- // LISTA DE PLAYERS // --
+local PlrFrame = Instance.new("Frame", Main)
+PlrFrame.Size = UDim2.new(0.3, 0, 0.78, 0)
+PlrFrame.Position = UDim2.new(0.68, 0, 0.09, 0)
+PlrFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Instance.new("UICorner", PlrFrame)
+
+local PlrScroll = Instance.new("ScrollingFrame", PlrFrame)
+PlrScroll.Size = UDim2.new(1, -10, 1, -10)
+PlrScroll.Position = UDim2.new(0, 5, 0, 5)
+PlrScroll.BackgroundTransparency = 1
+Instance.new("UIListLayout", PlrScroll).Padding = UDim.new(0, 5)
+
+-- // SWITCH ANIMADO // --
+local function AddSwitch(name, parent, callback)
+    local f = Instance.new("Frame", parent)
+    f.Size = UDim2.new(1, -10, 0, 50)
+    f.BackgroundColor3 = Theme.Secondary
+    Instance.new("UICorner", f)
+    
+    local t = Instance.new("TextLabel", f)
+    t.Size = UDim2.new(1, -70, 1, 0)
+    t.Position = UDim2.new(0, 15, 0, 0)
+    t.Text = name:upper()
+    t.TextColor3 = Theme.Text
+    t.Font = Enum.Font.GothamBold
+    t.TextSize = 11
+    t.TextXAlignment = Enum.TextXAlignment.Left
+    t.BackgroundTransparency = 1
+    
+    local Sw = Instance.new("Frame", f)
+    Sw.Size = UDim2.new(0, 42, 0, 22)
+    Sw.Position = UDim2.new(1, -55, 0.5, -11)
+    Sw.BackgroundColor3 = Theme.SwitchBg
+    Instance.new("UICorner", Sw).CornerRadius = UDim.new(1, 0)
+    
+    local Dot = Instance.new("Frame", Sw)
+    Dot.Size = UDim2.new(0, 18, 0, 18)
+    Dot.Position = UDim2.new(0, 2, 0.5, -9)
+    Dot.BackgroundColor3 = Theme.Red
+    Instance.new("UICorner", Dot).CornerRadius = UDim.new(1, 0)
+    
+    local active = false
+    local btn = Instance.new("TextButton", f)
+    btn.Size = UDim2.new(1, 0, 1, 0)
+    btn.BackgroundTransparency = 1
+    btn.Text = ""
+    
+    btn.MouseButton1Click:Connect(function()
+        active = not active
+        Dot:TweenPosition(active and UDim2.new(1, -20, 0.5, -9) or UDim2.new(0, 2, 0.5, -9), "Out", "Back", 0.3)
+        Dot.BackgroundColor3 = active and Theme.Green or Theme.Red
+        callback(active)
+    end)
+end
+
+-- // FUNCIONALIDADES // --
+local Vars = {Fly=false, VFly=false, Noclip=false, AutoWin=false, Sticking=false, AntiFall=false, Ragdoll=false, Target=nil, LastPos=nil}
+
+-- ABA 1: COMANDOS
+AddSwitch("Voo (Fly)", Pages[1], function(v) Vars.Fly = v end)
+AddSwitch("Voo Veiculo (VFly)", Pages[1], function(v) Vars.VFly = v end)
+AddSwitch("Anti-Queda (No Fall)", Pages[1], function(v) Vars.AntiFall = v end)
+
+AddSwitch("Cair Duro (Ragdoll)", Pages[1], function(v) 
+    Vars.Ragdoll = v 
+    if Player.Character and Player.Character:FindFirstChild("Humanoid") then
+        local hum = Player.Character.Humanoid
+        hum.PlatformStand = v
+        if not v then
+            -- CONCERTO DO BUG DO PULO: Força o estado a levantar
+            hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+        end
+    end
+end)
+
+AddSwitch("Atravessar (Noclip)", Pages[1], function(v) Vars.Noclip = v end)
+AddSwitch("Modo Vitoria", Pages[1], function(v)
+    Vars.AutoWin = v
+    if v then 
+        Vars.LastPos = Player.Character.HumanoidRootPart.CFrame 
+        Player.Character.HumanoidRootPart.CFrame = CFrame.new(-108, 250, 32)
+    else 
+        if Vars.LastPos then Player.Character.HumanoidRootPart.CFrame = Vars.LastPos end 
+    end
+end)
+AddSwitch("Grudar no Player", Pages[1], function(v) Vars.Sticking = v end)
+
+local SitBtn = Instance.new("TextButton", Pages[1])
+SitBtn.Size = UDim2.new(1, -10, 0, 45)
+SitBtn.BackgroundColor3 = Theme.Accent
+SitBtn.Text = "SENTAR (SIT)"
+SitBtn.TextColor3 = Theme.Text
+SitBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", SitBtn)
+SitBtn.MouseButton1Click:Connect(function() if Player.Character then Player.Character.Humanoid.Sit = true end end)
+
+-- ABA 2: MUNDO
+AddSwitch("FPS Boost (Texturas)", Pages[2], function(v)
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            if v then
+                if not Memory.Materials[obj] then Memory.Materials[obj] = obj.Material end
+                obj.Material = Enum.Material.SmoothPlastic
+            else obj.Material = Memory.Materials[obj] or Enum.Material.Plastic end
+        elseif obj:IsA("Decal") or obj:IsA("Texture") then
+            if v then if not Memory.Decals[obj] then Memory.Decals[obj] = obj.Transparency end obj.Transparency = 1
+            else obj.Transparency = Memory.Decals[obj] or 0 end
+        end
+    end
+end)
+AddSwitch("FullBright (Escuro)", Pages[2], function(v)
+    Lighting.Brightness = v and 2 or Memory.Bright
+    Lighting.ExposureCompensation = v and 3 or 0
+    Lighting.GlobalShadows = not v
+end)
+AddSwitch("Remover Neblina", Pages[2], function(v)
+    Lighting.FogEnd = v and 1e6 or Memory.Fog
+    for _, atm in pairs(Lighting:GetChildren()) do
+        if atm:IsA("Atmosphere") then
+            if v then Memory.Atm[atm] = atm.Parent atm.Parent = nil
+            else atm.Parent = Lighting end
+        end
+    end
+end)
+AddSwitch("Mudo Total", Pages[2], function(v)
+    for _, s in pairs(game:GetDescendants()) do
+        if s:IsA("Sound") then s.Volume = v and 0 or 0.5 end
+    end
+end)
+
+-- ABA 3: SERVIDOR
+local function SBtn(name, func)
+    local b = Instance.new("TextButton", Pages[3])
+    b.Size = UDim2.new(1, -10, 0, 45)
+    b.BackgroundColor3 = Theme.Accent
+    b.Text = name
+    b.TextColor3 = Theme.Text
+    b.Font = Enum.Font.GothamBold
+    Instance.new("UICorner", b)
+    b.MouseButton1Click:Connect(func)
+end
+SBtn("REJOIN SERVIDOR", function() TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, Player) end)
+SBtn("SERVER HOP", function() TeleportService:Teleport(game.PlaceId) end)
+
+-- // PLAYER LIST // --
+local function UpdatePlayers()
+    for _, v in pairs(PlrScroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
+    for _, p in pairs(game.Players:GetPlayers()) do
+        local b = Instance.new("TextButton", PlrScroll)
+        b.Size = UDim2.new(1, -5, 0, 45)
+        b.BackgroundColor3 = (Vars.Target == p) and Theme.Accent or Theme.Secondary
+        b.Text = p.DisplayName:upper()
+        b.TextColor3 = Theme.Text
+        b.Font = Enum.Font.GothamBold
+        b.TextSize = 16
+        Instance.new("UICorner", b)
+        b.MouseButton1Click:Connect(function() Vars.Target = p UpdatePlayers() end)
+    end
+end
+
+-- // LOOPS // --
+RunService.Heartbeat:Connect(function()
+    pcall(function()
+        if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = Player.Character.HumanoidRootPart
+            local hum = Player.Character.Humanoid
+            
+            if Vars.Fly or Vars.VFly then
+                local target = hrp
+                if Vars.VFly and hum.SeatPart and hum.SeatPart.Parent then
+                    target = hum.SeatPart.Parent.PrimaryPart or hum.SeatPart
+                end
+                
+                local cam = workspace.CurrentCamera.CFrame
+                local vel = Vector3.new(0, 0.1, 0)
+                if hum.MoveDirection.Magnitude > 0 then
+                    vel = (cam:VectorToWorldSpace(Vector3.new(
+                        UserInputService:IsKeyDown(Enum.KeyCode.D) and 1 or (UserInputService:IsKeyDown(Enum.KeyCode.A) and -1 or 0), 
+                        0, 
+                        UserInputService:IsKeyDown(Enum.KeyCode.S) and 1 or (UserInputService:IsKeyDown(Enum.KeyCode.W) and -1 or 0)
+                    ))).Unit * 100
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then vel = vel + Vector3.new(0, 50, 0) end
+                target.Velocity = vel
+            end
+
+            if Vars.AntiFall and hrp.Velocity.Y < -50 then
+                hrp.Velocity = Vector3.new(hrp.Velocity.X, 0, hrp.Velocity.Z)
+            end
+            
+            -- Mantém o estado enquanto o switch estiver ON
+            if Vars.Ragdoll then hum.PlatformStand = true end
+
+            if Vars.AutoWin then hrp.CFrame = CFrame.new(-108, 250, 32) hrp.Velocity = Vector3.new(0,0,0) end
+            if Vars.Sticking and Vars.Target and Vars.Target.Character then hrp.CFrame = Vars.Target.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,4) end
+        end
+    end)
+end)
+
+RunService.Stepped:Connect(function()
+    if Vars.Noclip and Player.Character then
+        for _, v in pairs(Player.Character:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false end end
+    end
+end)
+
+UpdatePlayers()
+game.Players.PlayerAdded:Connect(UpdatePlayers)
+game.Players.PlayerRemoving:Connect(UpdatePlayers)
+UserInputService.InputBegan:Connect(function(io, chat)
+    if not chat and io.KeyCode == Enum.KeyCode.L then Main.Visible = not Main.Visible end
+end)
